@@ -1,0 +1,33 @@
+NACDC Synthetic Dataset Analysis Report
+==================================================
+Generated: 2025-10-12 23:46:47
+
+DATASET OVERVIEW
+--------------------
+ε=2.0:
+  Records: 3,000
+  Privacy Budget (ε): 2.0
+  File: nacdc_synthetic_dp_2.0_3000.csv
+
+ε=0.5:
+  Records: 3,000
+  Privacy Budget (ε): 0.5
+  File: nacdc_synthetic_dp_0.5_3000.csv
+
+ε=1.0:
+  Records: 3,000
+  Privacy Budget (ε): 1.0
+  File: nacdc_synthetic_dp_1.0_3000.csv
+
+DATA QUALITY SCORES
+--------------------
+ε=2.0: 99.3/100
+ε=0.5: 99.3/100
+ε=1.0: 95.9/100
+
+RECOMMENDATIONS
+---------------
+- Datasets maintain realistic demographic patterns
+- All privacy levels suitable for research use
+- Lower ε values recommended for sensitive applications
+- Higher ε values suitable for general research
