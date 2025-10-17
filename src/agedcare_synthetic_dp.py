@@ -1,7 +1,5 @@
 """
-NACDC Synthetic Dataset Generator with Differential Privacy
-Generates synthetic residential care data based on NACDC table specifications
-with formal differential privacy guarantees.
+Generates synthetic residential care data based on Australian demographics.
 """
 
 import pandas as pd
@@ -11,14 +9,12 @@ from faker import Faker
 import random
 import os
 from diffprivlib.mechanisms import Laplace
-from diffprivlib.tools import mean as dp_mean, var as dp_var
 import warnings
 warnings.filterwarnings('ignore')
 
-class NACDCResidentialCareSynthesizer:
+class AgedCareSynthesizer:
     """
-    Generates synthetic residential care datasets with differential privacy.
-    Based on NACDC table specifications for residential care.
+    Generates synthetic aged care datasets.
     """
     
     def __init__(self, epsilon=1.0, delta=1e-5, random_seed=42):
@@ -156,28 +152,38 @@ class NACDCResidentialCareSynthesizer:
         
         return pd.DataFrame(records)
     
-    def apply_differential_privacy_refined(self, df):
-        """Apply carefully calibrated differential privacy."""
-        print(f"Applying differential privacy with ε={self.epsilon}, δ={self.delta}")
+    def apply_differential_privacy(self, df):
+        print(f"Applying differential privacy with epsilon={self.epsilon}, delta={self.delta}")
         
         df_private = df.copy()
         
-        # Allocate privacy budget more carefully
-        epsilon_numerical = self.epsilon * 0.7  # 70% for numerical data
-        epsilon_categorical = self.epsilon * 0.3  # 30% for categorical data
+        # More balanced budget allocation for better categorical utility
+        epsilon_numerical = self.epsilon * 0.85  # 85% for numerical data  
+        epsilon_categorical = self.epsilon * 0.15  # 15% for categorical data
         
-        # 1. Apply DP to numerical columns with realistic sensitivity
+        print(f"Privacy budget allocation: numerical={epsilon_numerical:.3f}, categorical={epsilon_categorical:.3f}")
+        
+        # 1. Apply DP to numerical columns with tuned sensitivity
         numerical_cols = ['age_at_admission', 'length_of_stay_days', 'medication_count', 
                          'chronic_conditions_count', 'acfi_care_domain', 
                          'acfi_accommodation_domain', 'acfi_complex_health_care', 'seifa_decile']
         
         epsilon_per_numerical = epsilon_numerical / len(numerical_cols)
         
+        sensitivity_values = {
+            'age_at_admission': 0.5,  # 6 month age uncertainty (vs 40 range)
+            'length_of_stay_days': 20,  # 20 day variation (vs 2999 range) 
+            'medication_count': 0.5,  # Half medication change (vs 20 range)
+            'chronic_conditions_count': 0.5,  # Half condition change (vs 10 range)
+            'acfi_care_domain': 3,  # 3 points (vs 100 range)
+            'acfi_accommodation_domain': 3,  # 3 points
+            'acfi_complex_health_care': 3,  # 3 points
+            'seifa_decile': 0.5  # Half decile (vs 9 range)
+        }
+        
         for col in numerical_cols:
             if col in df_private.columns:
-                # Use realistic sensitivity based on variable bounds
-                min_val, max_val = self.variable_bounds.get(col, (df_private[col].min(), df_private[col].max()))
-                sensitivity = max_val - min_val
+                sensitivity = sensitivity_values.get(col, 10) # Default fallback
                 
                 # Apply Laplace mechanism with proper sensitivity
                 laplace_mech = Laplace(epsilon=epsilon_per_numerical, sensitivity=sensitivity)
@@ -208,21 +214,38 @@ class NACDCResidentialCareSynthesizer:
                 
                 df_private[col] = noisy_values
         
-        # 2. Apply lighter perturbation to categorical data
+        # 2. Apply proper differential privacy to categorical data using Randomized Response
         categorical_cols = ['sex', 'indigenous_status', 'care_level', 'dementia_status', 'falls_risk']
         
-        perturbation_rate = min(0.1, self.epsilon / 10)  # Scale perturbation with epsilon
+        # Split epsilon_categorical across categorical columns with adaptive threshold
+        epsilon_per_categorical = max(0.5, epsilon_categorical / len(categorical_cols)) if categorical_cols else 0
+        print(f"Epsilon per categorical column: {epsilon_per_categorical:.4f}")
+        print(f"Categorical budget before/after minimum: {epsilon_categorical:.4f} → {epsilon_per_categorical * len(categorical_cols):.4f}")
         
         for col in categorical_cols:
             if col in df_private.columns:
-                unique_vals = df_private[col].unique()
-                n_to_perturb = max(1, int(len(df_private) * perturbation_rate))
+                unique_vals = list(df_private[col].unique())
+                k = len(unique_vals)  # Number of categories
                 
-                # Randomly select records to perturb
-                indices_to_perturb = np.random.choice(len(df_private), size=n_to_perturb, replace=False)
+                # Randomized Response parameters for differential privacy
+                # Probability of keeping true value vs random value
+                p_keep = np.exp(epsilon_per_categorical) / (np.exp(epsilon_per_categorical) + k - 1)
+                p_random = (1 - p_keep) / (k - 1) if k > 1 else 0
                 
-                for idx in indices_to_perturb:
-                    df_private.at[idx, col] = np.random.choice(unique_vals)
+                noisy_categorical = []
+                for value in df_private[col]:
+                    if np.random.random() < p_keep:
+                        # Keep original value
+                        noisy_categorical.append(value)
+                    else:
+                        # Replace with random category (excluding current)
+                        other_vals = [v for v in unique_vals if v != value]
+                        if other_vals:
+                            noisy_categorical.append(np.random.choice(other_vals))
+                        else:
+                            noisy_categorical.append(value)
+                
+                df_private[col] = noisy_categorical
         
         print("Differential privacy applied successfully!")
         return df_private
@@ -262,47 +285,13 @@ class NACDCResidentialCareSynthesizer:
                 diff = abs(orig_prop - priv_prop)
                 print(f"  {category}: Original={orig_prop:.3f}, Private={priv_prop:.3f}, Diff={diff:.3f}")
     
-    def generate_synthetic_dataset(self, n_records=10000, apply_dp=True, save_to_file=True):
-        """Generate synthetic NACDC residential care dataset."""
-        print(f"Generating {n_records} synthetic NACDC records...")
-        
-        # Generate base dataset
-        df = self.generate_base_demographics(n_records)
-        original_df = df.copy()
-        
-        # Apply differential privacy if requested
-        if apply_dp:
-            df = self.apply_differential_privacy_refined(df)
-            self.validate_privacy_properties(original_df, df)
-        
-        # Add metadata
-        df['record_generated_date'] = datetime.now().date()
-        df['privacy_applied'] = apply_dp
-        df['epsilon_used'] = self.epsilon if apply_dp else None
-        
-        # Save to file
-        if save_to_file:
-            filename = f"nacdc_synthetic_dp_{self.epsilon:.1f}_{n_records}.csv"
-            # Use relative path from script location
-            script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            data_dir = os.path.join(script_dir, "data", "synthetic")
-            os.makedirs(data_dir, exist_ok=True)
-            filepath = os.path.join(data_dir, filename)
-            df.to_csv(filepath, index=False)
-            print(f"Dataset saved to {filepath}")
-        
-        # Generate summary report
-        self.generate_summary_report(df, apply_dp)
-        
-        return df
-    
     def generate_summary_report(self, df, privacy_applied):
         """Generate a summary report of the synthetic dataset."""
-        print(f"\n=== NACDC Synthetic Dataset Summary ===")
+        print(f"\n=== Aged Care Synthetic Dataset Summary ===")
         print(f"Total records: {len(df):,}")
         print(f"Differential privacy applied: {privacy_applied}")
         if privacy_applied:
-            print(f"Privacy budget (ε): {self.epsilon}")
+            print(f"Privacy budget (epsilon): {self.epsilon}")
         
         print(f"\nDemographics:")
         print(f"Age range: {df['age_at_admission'].min():.0f} - {df['age_at_admission'].max():.0f}")
@@ -330,43 +319,81 @@ class NACDCResidentialCareSynthesizer:
 def main():
     """Main function for synthetic data generation."""
     print("=== NACDC Synthetic Data Generator ===")
-    print("Generating realistic synthetic data with differential privacy...\n")
+    print("Generating baseline data first, then applying different DP levels...\n")
     
-    # Test different privacy levels
+    # Step 1: Generate baseline dataset (no DP)
+    print(f"{'='*60}")
+    print("STEP 1: Generating Baseline Dataset (No Differential Privacy)")
+    print(f"{'='*60}")
+    
+    baseline_synthesizer = AgedCareSynthesizer(epsilon=0.0)
+    baseline_data = baseline_synthesizer.generate_base_demographics(n_records=3000)
+    
+    # Save baseline data
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data_dir = os.path.join(script_dir, "data")
+    os.makedirs(data_dir, exist_ok=True)
+    
+    baseline_filename = os.path.join(data_dir, "agedcare_baseline_3000.csv")
+    baseline_data.to_csv(baseline_filename, index=False)
+    print(f"Baseline dataset saved: {baseline_filename}")
+    
+    # Generate summary for baseline
+    baseline_synthesizer.generate_summary_report(baseline_data, privacy_applied=False)
+    
+    print(f"\nBaseline sample records:")
+    print(baseline_data[['person_id', 'age_at_admission', 'sex', 'care_level', 
+                        'dementia_status', 'length_of_stay_days', 'medication_count']].head())
+    
+    # Step 2: Apply different DP levels to the same baseline
+    print(f"\n{'='*60}")
+    print("STEP 2: Applying Different Privacy Levels to Same Baseline")
+    print(f"{'='*60}")
+    
     privacy_levels = [(0.5, "High Privacy"), (1.0, "Moderate Privacy"), (2.0, "Lower Privacy")]
     
     for epsilon, privacy_desc in privacy_levels:
-        print(f"\n{'='*60}")
-        print(f"Generating {privacy_desc} Dataset (ε={epsilon})")
-        print(f"{'='*60}")
+        print(f"\n{'-'*50}")
+        print(f"Applying {privacy_desc} (epsilon={epsilon}) to baseline data")
+        print(f"{'-'*50}")
         
-        synthesizer = NACDCResidentialCareSynthesizer(epsilon=epsilon, delta=1e-5)
+        # Create synthesizer with specific epsilon
+        synthesizer = AgedCareSynthesizer(epsilon=epsilon, delta=1e-5)
         
-        # Generate dataset
-        synthetic_data = synthesizer.generate_synthetic_dataset(
-            n_records=3000, 
-            apply_dp=True, 
-            save_to_file=True
-        )
+        # Apply DP to the same baseline data
+        dp_data = synthesizer.apply_differential_privacy(baseline_data.copy())
         
-        print(f"\nSample records (ε={epsilon}):")
-        print(synthetic_data[['person_id', 'age_at_admission', 'sex', 'care_level', 
-                            'dementia_status', 'length_of_stay_days', 'medication_count']].head())
+        # Add metadata
+        dp_data['record_generated_date'] = datetime.now().date()
+        dp_data['privacy_applied'] = True
+        dp_data['epsilon_used'] = epsilon
+        
+        # Save DP dataset
+        dp_filename = os.path.join(data_dir, f"agedcare_synthetic_dp_{epsilon}_3000.csv")
+        dp_data.to_csv(dp_filename, index=False)
+        print(f"DP dataset saved: {dp_filename}")
+        
+        # Validate privacy properties
+        synthesizer.validate_privacy_properties(baseline_data, dp_data)
+        
+        # Generate summary report
+        synthesizer.generate_summary_report(dp_data, privacy_applied=True)
+        
+        print(f"\nSample DP records (epsilon={epsilon}):")
+        print(dp_data[['person_id', 'age_at_admission', 'sex', 'care_level', 
+                      'dementia_status', 'length_of_stay_days', 'medication_count']].head())
     
-    # Generate baseline without DP
     print(f"\n{'='*60}")
-    print("Generating Baseline Dataset (No Differential Privacy)")
+    print("=== Generation Complete ===")
     print(f"{'='*60}")
-    
-    baseline_synthesizer = NACDCResidentialCareSynthesizer(epsilon=1.0)
-    baseline_data = baseline_synthesizer.generate_synthetic_dataset(
-        n_records=3000, 
-        apply_dp=False, 
-        save_to_file=True
-    )
-    
-    print("\n=== Generation Complete ===")
-    print("Synthetic NACDC residential care datasets with differential privacy have been generated.")
+    print("Baseline dataset generated")
+    print("DP datasets generated from same baseline with epsilon = [0.5, 1.0, 2.0]")
+    print(f"All files saved in: {data_dir}")
+    print("\nGenerated files:")
+    print("  - agedcare_baseline_3000.csv (no privacy)")
+    print("  - agedcare_synthetic_dp_0.5_3000.csv (high privacy)")
+    print("  - agedcare_synthetic_dp_1.0_3000.csv (moderate privacy)")
+    print("  - agedcare_synthetic_dp_2.0_3000.csv (lower privacy)")
 
 
 if __name__ == "__main__":

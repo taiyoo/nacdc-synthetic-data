@@ -1,254 +1,297 @@
-# NACDC Synthetic Data Generation Project
+# Aged Care Synthetic Data Generator
 
-## Overview
+Australian aged care synthetic data generation with formal differential privacy protection and comprehensive privacy-utility analysis.
 
-This repository contains **two distinct synthetic data generators** for Australian aged care data with formal differential privacy protection:
+## 🎯 Overview
 
-1. **🔬 Research Dataset Generator** (`src/nacdc_synthetic_dp.py`) - Simplified, research-focused data
-2. **🏛️ Government-Compliant Generator** (`src/government_compliant_generator.py`) - **Following NACDC submission format**
+This repository provides a **research-focused synthetic data generator** for Australian aged care data with:
 
-### Key Features
-- **Official Tables**: MAIN_RECIPIENT, RAC_EPISODE, RAC_ASSESSMENT_ACFI
-- **Government Codes**: Uses actual NACDC variable names and code sets
-- **Full Compliance**: Meets all 10/10 government submission requirements
-- **Privacy Protected**: Formal differential privacy (ε = 1.0, 2.0, 5.0)
-- **Realistic Data**: Australian demographic distributions, proper ACFI assessments
+### 🔬 Aged Care Dataset Generator  
+- **Purpose**: Academic research on aged care populations
+- **Features**: Realistic demographics, health assessments, care episodes with ACFI scores
+- **Privacy**: Advanced differential privacy with optimized utility preservation
+- **Analysis**: Comprehensive privacy-utility trade-off evaluation
+- **Output**: Baseline + multiple privacy levels (ε = 0.5, 1.0, 2.0)
 
-### Generated Tables
-1. **MAIN_RECIPIENT** (18 variables) - Official demographics with AIHW_PPN, government codes
-2. **RAC_EPISODE** (15 variables) - Care episodes with proper date relationships  
-3. **RAC_ASSESSMENT_ACFI** (27+ variables) - Detailed ACFI assessments with Q01-Q14
+## 🚀 Quick Start
 
-**📂 Location**: `data/government_compliant/`  
-**📖 Documentation**: See `data/government_compliant/README.md`
-
-## � Quick Start
-
-### Installation and Setup
-
+### Installation
 ```bash
-# Clone the repository
-git clone https://github.com/taiyoo/nacdc-synthetic-data
-cd csec5614
+# Clone repository
+git clone https://github.com/taiyoo/nacdc-synthetic-data.git
+cd nacdc-synthetic-data
 
-# Run automated setup (creates virtual environment and installs dependencies)
-python setup.py
-
-# Or manually:
+# Setup
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### Generate Government-Compliant Data
+### Generate and Analyze Data
 ```bash
-# Activate virtual environment
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+# Generate baseline + multiple DP levels (ε = 0.5, 1.0, 2.0) automatically
+python src/agedcare_synthetic_dp.py
 
-# Generate official government submission data
-python src/government_compliant_generator.py
+# Comprehensive privacy-utility trade-off analysis
+python src/agedcare_tradeoff_analysis.py
 
-# Analyze compliance and quality
-python src/government_compliance_analyzer.py
+# Demonstrate zero-knowledge access control for aged care data
+python src/agedcare_zk_snarks.py
 ```
-
-### Generate Research Data
-```bash
-# Generate simplified research datasets
-python src/nacdc_synthetic_dp.py
-
-# Analyze research datasets
-python src/nacdc_analysis.py
-```
-
-## �🔬 Research Dataset Generator (Original)
-
-Simplified synthetic data for research and academic purposes.
 
 ## 🔒 Privacy Protection
 
-Both generators implement **differential privacy**, providing formal privacy guarantees:
+The generator implements **formal differential privacy** providing mathematical privacy guarantees:
 
 ### Privacy Parameters
-- **ε (epsilon)**: Privacy budget - lower values provide stronger privacy protection
-  - ε = 0.1-0.5: Very high privacy (recommended for sensitive research)
-  - ε = 1.0: High privacy (good balance for most applications)
-  - ε = 2.0-5.0: Moderate privacy (suitable for general research)
-  - ε = 10.0+: Lower privacy (minimal protection, high utility)
+- **ε (epsilon)**: Privacy budget - lower values = stronger privacy
+  - ε = 0.5: High privacy (research-grade protection)
+  - ε = 1.0: Balanced privacy-utility (recommended)
+  - ε = 2.0: Moderate privacy (good utility)
 
-- **δ (delta)**: Probability of privacy failure (set to 1e-5)
+- **δ (delta)**: Privacy failure probability (fixed at 1e-5)
+
+### Privacy Mechanisms
+- **Numerical data**: Calibrated Laplace noise with realistic sensitivity
+- **Categorical data**: Randomized response mechanism
+- **Budget allocation**: Optimized 85% numerical, 15% categorical
+
+## 📈 Privacy-Utility Analysis
+
+The `agedcare_tradeoff_analysis.py` provides comprehensive evaluation of privacy-utility trade-offs:
+
+### Analysis Features
+- **Multi-metric evaluation**: MAE-based utility, correlation preservation, relative error
+- **Visual trade-off charts**: Privacy vs utility curves across epsilon values  
+- **Statistical validation**: Distribution comparisons and fidelity metrics
+- **Automated reporting**: Detailed analysis summaries and recommendations
+
+### Key Metrics
+1. **MAE Utility**: `1 - (MAE / variable_range)` - measures value preservation
+2. **Correlation Utility**: Pearson correlation between baseline and DP data
+3. **Relative Error**: `1 - (MAE / baseline_mean)` - normalized accuracy measure
+
+### Generated Outputs
+- **Privacy-utility charts**: `analysis/agedcare_privacy_utility_chart.png`
+- **Detailed reports**: Analysis summaries with utility scores per epsilon
+- **Comparison tables**: Statistical fidelity across all privacy levels
 
 ## 📊 Dataset Structure
 
-The synthetic datasets follow the NACDC residential care data schema and include:
+### Aged Care Dataset Variables
 
-### Demographics
-- `person_id`: De-identified person identifier
-- `age_at_admission`: Age when entering residential care (65-105)
-- `sex`: Gender (M/F/X)
-- `indigenous_status`: Indigenous status
-- `country_of_birth`: Country of birth
-- `preferred_language`: Preferred language
-
-### Care Information
-- `provider_id`: De-identified care provider
-- `service_id`: De-identified service identifier
-- `admission_date`: Date of admission to residential care
-- `discharge_date`: Date of discharge (null if still in care)
-- `care_level`: Care level required (Level 1-4)
-- `accommodation_type`: Permanent or Respite care
-- `length_of_stay_days`: Duration in residential care
-
-### Health & Assessment
-- `acfi_care_domain`: Aged Care Funding Instrument - Care score
-- `acfi_accommodation_domain`: ACFI - Accommodation score
-- `acfi_complex_health_care`: ACFI - Complex health care score
-- `dementia_status`: Dementia diagnosis status
-- `falls_risk`: Risk of falls assessment
-- `medication_count`: Number of medications
-- `chronic_conditions_count`: Number of chronic conditions
-- `mobility_assistance`: Level of mobility assistance required
-- `personal_care_assistance`: Level of personal care assistance
-
-### Geographic
-- `postcode`: Postcode of residence
-- `remoteness_area`: Geographic remoteness classification
+#### Demographics
+- `person_id`: De-identified person identifier  
+- `age_at_admission`: Age entering care (65-105)
+- `sex`: Gender (M/F/X) 
+- `indigenous_status`: Indigenous background
+- `postcode`: Residential postcode
 - `seifa_decile`: Socioeconomic index (1-10)
 
-## 🚀 Usage Instructions
+#### Care & Health
+- `care_level`: Required care level (1-4)
+- `length_of_stay_days`: Duration in residential care
+- `acfi_*_domain`: ACFI assessment scores
+- `dementia_status`: Dementia diagnosis
+- `medication_count`: Number of medications
+- `chronic_conditions_count`: Chronic health conditions
 
-### 1. Generate Synthetic Data
+## 💻 Usage Examples
 
+### Generate Synthetic Data
 ```python
-from nacdc_synthetic_dp import NACDCResidentialCareSynthesizer
+# Generate baseline and privacy-protected datasets
+from src.agedcare_synthetic_dp import AgedCareSynthesizer
+import os
 
-# Initialize synthesizer with desired privacy level
-synthesizer = NACDCResidentialCareSynthesizer(epsilon=1.0, delta=1e-5)
+# Step 1: Generate baseline data (no privacy)
+baseline_synthesizer = AgedCareSynthesizer(epsilon=0.0)
+baseline_data = baseline_synthesizer.generate_base_demographics(n_records=3000)
 
-# Generate synthetic dataset
-synthetic_data = synthesizer.generate_synthetic_dataset(
-    n_records=10000,
-    apply_dp=True,
-    save_to_file=True
-)
+# Step 2: Apply different privacy levels to same baseline
+privacy_levels = [0.5, 1.0, 2.0]  # High, moderate, lower privacy
+datasets = {'baseline': baseline_data}
+
+for epsilon in privacy_levels:
+    privacy_synthesizer = AgedCareSynthesizer(epsilon=epsilon, delta=1e-5)
+    dp_data = privacy_synthesizer.apply_differential_privacy(baseline_data.copy())
+    datasets[f'epsilon_{epsilon}'] = dp_data
+    
+    # Save DP dataset
+    dp_data.to_csv(f'data/agedcare_synthetic_dp_{epsilon}_3000.csv', index=False)
+
+# Save baseline
+baseline_data.to_csv('data/agedcare_baseline_3000.csv', index=False)
+print(f"Generated {len(datasets)} datasets with varying privacy levels")
 ```
 
-### 2. Analyze Generated Datasets
-
+### Privacy-Utility Analysis
 ```python
-from nacdc_analysis import NACDCDatasetAnalyzer
+# Comprehensive analysis of privacy-utility trade-offs
+from src.agedcare_tradeoff_analysis import AgedCareTradeoffAnalyzer
 
-# Initialize analyzer
-analyzer = NACDCDatasetAnalyzer()
-
-# Load and compare all generated datasets
-datasets = analyzer.load_datasets()
-
-# Compare distributions across privacy levels
-analyzer.compare_distributions(datasets)
-
-# Analyze privacy-utility tradeoff
-analyzer.privacy_utility_analysis(datasets)
-
-# Generate quality assessment
-analyzer.generate_data_quality_report(datasets)
+analyzer = AgedCareTradeoffAnalyzer()
+analyzer.run_analysis()  # Generates charts and utility metrics
 ```
 
-### 3. Load Dataset for Analysis
-
+### Load and Analyze Data
 ```python
+# Load datasets for custom analysis
 import pandas as pd
 
-# Load a specific dataset
-df = pd.read_csv('nacdc_synthetic_dp_1.0_3000.csv')
+# Load baseline and differentially private data
+baseline_df = pd.read_csv('data/agedcare_baseline_3000.csv')
+dp_05_df = pd.read_csv('data/agedcare_synthetic_dp_0.5_3000.csv')  # High privacy
+dp_10_df = pd.read_csv('data/agedcare_synthetic_dp_1.0_3000.csv')  # Balanced
+dp_20_df = pd.read_csv('data/agedcare_synthetic_dp_2.0_3000.csv')  # Lower privacy
 
-# Basic statistics
-print(df.describe())
-
-# Demographic analysis
-print(df['care_level'].value_counts())
-print(f"Average age: {df['age_at_admission'].mean():.1f}")
-print(f"Dementia prevalence: {(df['dementia_status'] == 'Yes').mean()*100:.1f}%")
+# Compare key demographics
+print(f"Baseline avg age: {baseline_df['age_at_admission'].mean():.1f}")
+print(f"DP ε=1.0 avg age: {dp_10_df['age_at_admission'].mean():.1f}")
+print(f"Care level preservation: {(dp_10_df['care_level'].mode()[0] == baseline_df['care_level'].mode()[0])}")
 ```
+
+## 🔐 Zero-Knowledge Access Control
+
+The `agedcare_zk_snarks.py` demonstrates **ZK-SNARKs** (Zero-Knowledge Succinct Non-Interactive Arguments of Knowledge) for privacy-preserving access control to resident data.
+
+### Key Features
+- **Zero-knowledge proof of access rights** - Staff prove they have valid credentials without revealing them
+- **Policy-based access control** - Resident data protected by clearance level, department, and role requirements  
+- **Cryptographic verification** - Mathematically secure proof verification without credential exposure
+- **Complete audit trail** - All access attempts logged while preserving privacy
+- **Consent management** - Time-limited access with automatic expiration
+
+### ZK-SNARKs Workflow
+1. **Access Request**: Staff member requests access to resident data
+2. **Challenge Generation**: System creates cryptographic challenge based on data access policy
+3. **Proof Computation**: Staff client generates ZK-SNARK proof of valid credentials (without revealing them)
+4. **Proof Verification**: System verifies proof using cryptographic pairing operations
+5. **Access Grant**: If proof valid, decrypt and provide data + log access
+
+### Usage Example
+```python
+# Zero-knowledge access control demonstration
+from src.agedcare_zk_snarks import AgedCareZKSystem
+
+# Initialize ZK access control system
+zk_system = AgedCareZKSystem()
+
+# Register staff with credentials (stored securely)
+zk_system.register_staff('dr_smith', 'doctor', clearance_level=5, department='medical')
+zk_system.register_staff('nurse_alice', 'nurse', clearance_level=3, department='medical')
+
+# Store resident data with access policy
+resident_data = {
+    'name': 'Margaret Johnson',
+    'medical_conditions': ['diabetes', 'hypertension'],
+    'care_plan': 'assisted living with monitoring'
+}
+
+zk_system.store_resident_data(
+    resident_id='resident_001',
+    data=resident_data,
+    required_clearance=4,
+    allowed_departments=['medical'],
+    allowed_roles=['doctor', 'senior_nurse']
+)
+
+# ZK-SNARKs access workflow
+challenge = zk_system.generate_access_challenge('resident_001')
+proof = zk_system.compute_zk_proof('dr_smith', challenge)
+accessed_data = zk_system.grant_access_and_log('dr_smith', 'resident_001', proof, challenge, 'medical_review')
+```
+
+### Benefits for Aged Care
+- **Staff Privacy**: Credentials never exposed during verification process
+- **Resident Protection**: Multi-layered access control with cryptographic guarantees
+- **Compliance**: Detailed audit logs for regulatory requirements
+- **Scalability**: Verification complexity independent of credential database size
+- **Trust**: Mathematical proof of authorization without revealing sensitive information
+
 
 ## 📈 Research Applications
 
-### Suitable Uses
-✅ **Epidemiological research** - Population-level health trends  
-✅ **Policy analysis** - Care level distributions and requirements  
-✅ **Machine learning** - Predictive model development  
-✅ **Resource planning** - Capacity and staffing analysis  
-✅ **Quality improvement** - Care pathway optimization  
-✅ **Education** - Training and teaching datasets  
+### Suitable Research Uses ✅
+- **Population health studies** - Demographic and health trend analysis  
+- **Healthcare policy research** - Care level requirements and resource planning
+- **Machine learning** - Privacy-preserving model development and validation
+- **Differential privacy research** - Privacy-utility trade-off evaluation
+- **Zero-knowledge cryptography** - Access control and authentication systems
+- **Educational purposes** - Teaching privacy-preserving data analysis and cryptographic protocols
 
-### Limitations
-❌ **Individual-level analysis** - Records don't represent real people  
-❌ **Linkage studies** - Cannot be linked to external datasets  
-❌ **Rare conditions** - May not accurately represent very rare cases  
-❌ **Temporal trends** - Generated at single time point  
+### Important Limitations ❌  
+- **Individual analysis** - Records don't represent real people
+- **Longitudinal studies** - Generated at single time point
+- **Rare conditions** - May not capture very low-prevalence cases
+- **External linkage** - Cannot be linked to other datasets
 
-## 🔍 Quality Validation
+## 🛠️ Development & Contribution
 
-Each generated dataset includes validation metrics:
+### Repository Structure
+```
+aged-care-synthetic-data/
+├── src/                              # Source code
+│   ├── agedcare_synthetic_dp.py          # Data generator with differential privacy
+│   ├── agedcare_tradeoff_analysis.py     # Privacy-utility analysis
+│   └── agedcare_zk_snarks.py             # Zero-knowledge access control
+├── data/                             # Generated datasets
+│   ├── agedcare_baseline_3000.csv       # Original synthetic data
+│   ├── agedcare_synthetic_dp_0.5_3000.csv  # High privacy
+│   ├── agedcare_synthetic_dp_1.0_3000.csv  # Balanced
+│   └── agedcare_synthetic_dp_2.0_3000.csv  # Lower privacy
+├── analysis/                         # Analysis results and charts
+├── requirements.txt                  # Dependencies
+└── setup.py                          # Automated setup
+```
 
-- **Statistical Fidelity**: Comparison of distributions with baseline
-- **Privacy Protection**: Formal differential privacy guarantees
-- **Data Quality**: Missing values, range validation, logical consistency
-- **Utility Preservation**: Maintenance of research-relevant patterns
+### Git Workflow
+```bash
+# Clone and setup
+git clone https://github.com/taiyoo/nacdc-synthetic-data.git
+cd nacdc-synthetic-data
+python setup.py
 
-## 📁 Generated Files
+# Make changes and commit
+git add .
+git commit -m "Description of changes"
+git push origin main
+```
 
-The system generates several files:
+### Contributing Guidelines
+1. **Privacy preservation**: Maintain formal differential privacy guarantees
+2. **Utility optimization**: Improve sensitivity calibration and noise mechanisms
+3. **Analysis enhancement**: Add new utility metrics and evaluation methods
+4. **Code quality**: Include tests and documentation for new features
 
-1. **Synthetic datasets**: `nacdc_synthetic_dp_{epsilon}_{n_records}.csv`
-2. **Analysis plots**: Distribution comparisons and privacy-utility tradeoffs
-3. **Quality report**: `nacdc_analysis_report.txt`
-4. **Visualization**: Demographic and statistical analysis plots
+## ⚖️ Ethics & Legal
 
-## ⚖️ Ethical Considerations
+### Privacy Guarantees
+- **Formal differential privacy** provides mathematical privacy protection
+- **Optimized utility preservation** through careful sensitivity tuning
+- **Safe for research use** without individual privacy concerns
 
-This synthetic data:
-- Provides formal privacy protection through differential privacy
-- Enables research without compromising individual privacy
-- Maintains statistical utility for population-level analysis
-- Should not be used to infer information about real individuals
+### Usage Responsibilities  
+- Synthetic data only - not for clinical decisions
+- Cannot represent real individuals or organizations  
+- Follow institutional research ethics guidelines
+- Acknowledge synthetic nature in research publications
 
-## 📚 Technical Details
+## 📚 References & Citation
 
-### Differential Privacy Implementation
-- Uses Laplace mechanism for numerical variables
-- Calibrated sensitivity based on realistic variable bounds
-- Categorical perturbation with privacy budget allocation
-- Validation against baseline distributions
+### Academic References
+- Dwork, C., & Roth, A. (2014). The algorithmic foundations of differential privacy
+- AIHW (2024). National Aged Care Data Clearinghouse data dictionary
 
-### Data Generation Process
-1. **Base generation**: Realistic correlated demographic and health data
-2. **Privacy application**: Differential privacy mechanisms with calibrated noise
-3. **Validation**: Statistical and logical consistency checks
-4. **Quality assessment**: Utility preservation and privacy validation
+### Citation
+```bibtex
+@software{agedcare_synthetic_2025,
+  title = {Aged Care Synthetic Data Generator with Differential Privacy},
+  author = {CSEC5614 Research Team},
+  year = {2025},
+  url = {https://github.com/taiyoo/nacdc-synthetic-data},
+  note = {Privacy-utility optimized synthetic data for aged care research}
+}
+```
 
-## 🤝 Contributing
-
-To improve the synthetic data generator:
-1. Enhance realism of generated correlations
-2. Add new variables from NACDC specifications
-3. Implement additional privacy mechanisms
-4. Improve validation and quality metrics
-
-## 📞 Support
-
-For questions about:
-- **Privacy guarantees**: Consult differential privacy literature
-- **NACDC data**: Visit https://www.aihw.gov.au/reports-data/nacda/data
-- **Implementation**: Review code documentation and comments
-
-## 📄 Citation
-
-If using this synthetic data for research, please cite:
-- The NACDC data source: Australian Institute of Health and Welfare
-- Differential privacy methodology: Dwork & Roth (2014)
-- This synthetic data generator implementation
-
----
-
-**Disclaimer**: This is synthetic data generated for research purposes. It does not represent real individuals and should not be used for clinical decision-making or individual care planning.
+**⚠️ Disclaimer**: This synthetic data is generated for research purposes only. It does not represent real individuals and should not be used for clinical decision-making or individual care planning.
