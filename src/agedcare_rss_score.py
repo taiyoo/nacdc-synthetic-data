@@ -113,7 +113,6 @@ class Re_identificationRiskScorer:
 
 
 if __name__ == "__main__":
-    # Example usage across multiple datasets
     datasets = [
         ("High Privacy (ε=0.5)", "data/synthetic/agedcare_synthetic_dp_0.5_3000.csv"),
         ("Moderate Privacy (ε=1.0)", "data/synthetic/agedcare_synthetic_dp_1.0_3000.csv"),
